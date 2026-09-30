@@ -1,0 +1,13 @@
+<!doctype html>
+<title>intercept native play reject</title>
+<audio id="media" loop></audio>
+<script src="media.js"></script>
+<script>
+  // Behaves like a restricted site: patches play() itself and rejects while hidden.
+  const media = document.getElementById('media');
+  const nativePlay = media.play.bind(media);
+  media.play = function () {
+    if (document.hidden) return Promise.reject(new DOMException('blocked while hidden', 'NotAllowedError'));
+    return nativePlay();
+  };
+</script>

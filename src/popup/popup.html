@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listening Glass</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Listening Glass</h1>
+    <div id="host-info" class="host-row">
+      <span class="label">Current host:</span>
+      <span id="current-host" class="value">—</span>
+    </div>
+    <div id="service-page-msg" class="service-msg hidden">
+      Switch unavailable on service pages (chrome://*, store pages).
+    </div>
+    <div id="toggle-area" class="toggle-row hidden">
+      <span class="label">Enable for this site:</span>
+      <label class="switch">
+        <input type="checkbox" id="host-toggle">
+        <span class="slider"></span>
+      </label>
+      <span id="state-label" class="state-label">—</span>
+    </div>
+    <div id="reload-msg" class="reload-msg hidden">
+      reload the page to apply
+    </div>
+    <div class="actions">
+      <button id="reset-btn" class="btn">Reset to defaults</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<!doctype html>
+<title>unload source on hidden</title>
+<audio id="media" loop></audio>
+<script src="media.js"></script>
+<script>
+  // Behaves like a restricted site: drops the media source when the page is hidden.
+  const media = document.getElementById('media');
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') { media.removeAttribute('src'); media.load(); }
+  });
+</script>

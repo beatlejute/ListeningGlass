@@ -1,0 +1,9 @@
+<!doctype html>
+<title>pause on blur</title>
+<audio id="media" loop></audio>
+<script src="media.js"></script>
+<script>
+  // Behaves like a restricted site: pauses when the window loses focus.
+  const media = document.getElementById('media');
+  window.addEventListener('blur', () => media.pause());
+</script>

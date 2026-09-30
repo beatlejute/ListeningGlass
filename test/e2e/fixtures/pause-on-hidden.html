@@ -1,0 +1,12 @@
+<!doctype html>
+<title>pause on hidden</title>
+<audio id="media" loop></audio>
+<script src="media.js"></script>
+<script>
+  // Behaves like a restricted site: pauses when hidden and refuses to play while hidden.
+  const media = document.getElementById('media');
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') media.pause();
+  });
+  media.addEventListener('play', () => { if (document.hidden) media.pause(); });
+</script>

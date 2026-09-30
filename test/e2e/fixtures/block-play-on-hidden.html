@@ -1,0 +1,10 @@
+<!doctype html>
+<title>block play on hidden</title>
+<audio id="media" loop></audio>
+<script src="media.js"></script>
+<script>
+  // Behaves like a restricted site: does not auto-pause on hide, but blocks
+  // manual resume attempts made while the page is hidden.
+  const media = document.getElementById('media');
+  media.addEventListener('play', () => { if (document.hidden) media.pause(); });
+</script>

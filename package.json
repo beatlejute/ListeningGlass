@@ -1,0 +1,26 @@
+{
+  "name": "listeningglass",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:e2e": "node --test test/e2e/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beatlejute/ListeningGlass.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/beatlejute/ListeningGlass/issues"
+  },
+  "homepage": "https://github.com/beatlejute/ListeningGlass#readme",
+  "devDependencies": {
+    "playwright-core": "1.58"
+  }
+}

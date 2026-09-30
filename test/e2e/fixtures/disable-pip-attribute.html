@@ -1,0 +1,10 @@
+<!doctype html>
+<title>disable pip attribute</title>
+<video id="media" muted disablepictureinpicture></video>
+<script>
+  // Behaves like a restricted site: keeps disablePictureInPicture engaged even
+  // after something tries to clear it, by reasserting it on an interval.
+  const media = document.getElementById('media');
+  media.disablePictureInPicture = true;
+  setInterval(() => { media.disablePictureInPicture = true; }, 200);
+</script>

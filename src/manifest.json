@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Listening Glass",
+  "version": "0.1.0",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "description": "Keeps media playing when the browser is minimized or tabs are hidden.",
+  "permissions": [
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "host_permissions": [
+    "*://m.youtube.com/*",
+    "*://www.youtube.com/*",
+    "*://www.youtube-nocookie.com/*",
+    "*://music.youtube.com/*",
+    "*://rutube.ru/*",
+    "*://m.twitch.tv/*",
+    "*://www.twitch.tv/*",
+    "*://www.tiktok.com/*",
+    "*://music.apple.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Listening Glass"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

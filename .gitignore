@@ -1,0 +1,45 @@
+# Workflow AI specific
+# (lines of this block and of "# AI" are re-appended by `workflow init` when missing — keep them as they are)
+.workflow-state/
+.cache/
+.workflow/
+.workflow/state/
+
+# AI
+QWEN.md
+CLAUDE.md
+.kilocode/
+.kilocodemodes
+.kilo/
+.claude/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test and tool output
+test-results/
+playwright-report/
+coverage/
+*.log
+
+# Local environment
+.env
+.env.*
+
+# Editors and OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Local research, spikes and manual QA reports — kept on disk, not published.
+# Workflow checks on these folders need `git grep --untracked --no-exclude-standard`:
+# plain `--untracked` skips ignored files.
+research/
+spikes/
+prototype/
+qa/
