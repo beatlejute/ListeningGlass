@@ -1,89 +1,64 @@
 'use strict';
 
-const STORAGE_KEY = 'siteList';
-const DEFAULT_HOSTS = [
-  'm.youtube.com', 'www.youtube.com', 'www.youtube-nocookie.com',
-  'music.youtube.com', 'rutube.ru', 'm.twitch.tv', 'www.twitch.tv',
-  'www.tiktok.com', 'music.apple.com',
-];
+// Классические скрипты страницы делят одну глобальную область с site-list.js,
+// поэтому список сайтов и его функции берём из модуля siteList, а не объявляем
+// здесь: верхнеуровневое const STORAGE_KEY рядом с модульным даёт
+// «Identifier 'STORAGE_KEY' has already been declared».
 
-function sanitizeState(state) {
-  if (!state || typeof state !== 'object') return { added: [], excluded: [] };
-  const added = Array.isArray(state.added) ? state.added.filter(h => typeof h === 'string') : [];
-  const excluded = Array.isArray(state.excluded) ? state.excluded.filter(h => typeof h === 'string') : [];
-  return { added, excluded };
-}
-
-function isHostEnabled(host, state) {
-  const s = sanitizeState(state);
-  if (s.excluded.includes(host)) return false;
-  if (DEFAULT_HOSTS.includes(host)) return true;
-  return s.added.includes(host);
-}
-
-function addHost(host, state) {
-  const s = sanitizeState(state);
-  const excluded = s.excluded.filter(h => h !== host);
-  const added = s.added.includes(host) ? s.added : [...s.added, host];
-  return { added, excluded };
-}
-
-function removeHost(host, state) {
-  const s = sanitizeState(state);
-  if (DEFAULT_HOSTS.includes(host)) {
-    const excluded = s.excluded.includes(host) ? s.excluded : [...s.excluded, host];
-    return { added: s.added, excluded };
-  }
-  return { added: s.added.filter(h => h !== host), excluded: s.excluded };
-}
-
-function resetState() {
-  return { added: [], excluded: [] };
-}
-
-function getServicePage() {
-  return /^chrome:|chrome-extension:|https?:\/\/chrome\.google\.com\/webstore/.test(window.location.href) ? true : false;
-}
-
-async function getCurrentTabHost() {
+// activeTab даёт URL только вкладки, для которой пользователь открыл панель.
+// Постоянный доступ к пользовательскому сайту запрашивается при включении.
+async function getCurrentTab() {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs && tabs[0];
-      if (!tab || !tab.url) {
-        resolve(null);
+      if (!tab) {
+        resolve({ url: undefined, host: null, hostname: null, scheme: null });
+        return;
+      }
+      if (!tab.url) {
+        resolve({ url: undefined, host: null, hostname: null, scheme: null });
         return;
       }
       try {
         const url = new URL(tab.url);
-        resolve(url.host || null);
+        resolve({ url: tab.url, host: url.host, hostname: url.hostname, scheme: url.protocol });
       } catch {
-        resolve(null);
+        resolve({ url: tab.url, host: null, hostname: null, scheme: null });
       }
     });
   });
 }
 
+// Шаблон для chrome.permissions.request: схема вкладки и хост без порта. Порт в
+// шаблонах соответствия Chrome не участвует, поэтому http://127.0.0.1:8080
+// покрыт шаблоном http://127.0.0.1/*.
+function accessPattern(tab) {
+  return `${tab.scheme}//${tab.hostname}/*`;
+}
+
 async function init() {
-  const host = await getCurrentTabHost();
+  const tab = await getCurrentTab();
   const hostEl = document.getElementById('current-host');
   const toggleArea = document.getElementById('toggle-area');
   const serviceMsg = document.getElementById('service-page-msg');
+  const permissionMsg = document.getElementById('permission-msg');
   const reloadMsg = document.getElementById('reload-msg');
   const toggle = document.getElementById('host-toggle');
   const label = document.getElementById('state-label');
   const resetBtn = document.getElementById('reset-btn');
 
-  if (!host) {
+  if (siteList.isServicePage(tab && tab.url)) {
     hostEl.textContent = '—';
     toggleArea.classList.add('hidden');
     serviceMsg.classList.remove('hidden');
-    serviceMsg.textContent = 'Cannot read current page host.';
+    serviceMsg.textContent = 'Switch unavailable on service pages (chrome://*, store pages).';
     return;
   }
 
+  const host = tab.host;
   hostEl.textContent = host;
 
-  if (/^chrome:/.test(host) || /chrome\.google\.com/.test(host) || host === 'store') {
+  if (!host) {
     toggleArea.classList.add('hidden');
     serviceMsg.classList.remove('hidden');
     serviceMsg.textContent = 'Switch unavailable on service pages (chrome://*, store pages).';
@@ -93,38 +68,65 @@ async function init() {
   toggleArea.classList.remove('hidden');
   serviceMsg.classList.add('hidden');
 
-  chrome.storage.local.get(STORAGE_KEY, (result) => {
-    const state = sanitizeState(result && result[STORAGE_KEY]);
-    const enabled = isHostEnabled(host, state);
+  chrome.storage.local.get(siteList.STORAGE_KEY, (result) => {
+    const state = siteList.sanitizeState(result && result[siteList.STORAGE_KEY]);
+    const enabled = siteList.isHostEnabled(host, state);
     toggle.checked = enabled;
-    label.textContent = enabled ? 'Enabled' : 'Disabled';
+    label.textContent = getStateLabel(host, state);
   });
 
-  toggle.addEventListener('change', () => {
-    chrome.storage.local.get(STORAGE_KEY, (result) => {
-      const state = sanitizeState(result && result[STORAGE_KEY]);
-      const newEnabled = toggle.checked;
-      let newState;
-      if (newEnabled) {
-        newState = addHost(host, state);
-      } else {
-        newState = removeHost(host, state);
-      }
-      chrome.storage.local.set({ [STORAGE_KEY]: newState }, () => {
-        const state = sanitizeState(newState);
-        label.textContent = isHostEnabled(host, newState) ? 'Enabled' : 'Disabled';
+  function writeToggleState() {
+    chrome.storage.local.get(siteList.STORAGE_KEY, (result) => {
+      const state = siteList.sanitizeState(result && result[siteList.STORAGE_KEY]);
+      const newState = toggle.checked
+        ? siteList.addHostToState(host, state)
+        : siteList.removeHostFromState(host, state);
+      chrome.storage.local.set({ [siteList.STORAGE_KEY]: newState }, () => {
+        label.textContent = getStateLabel(host, newState);
         reloadMsg.classList.remove('hidden');
         setTimeout(() => reloadMsg.classList.add('hidden'), 3000);
       });
     });
+  }
+
+  function getStateLabel(host, state) {
+    const stateStr = siteList.hostState(host, state);
+    if (stateStr === 'default') return 'Enabled by default';
+    if (stateStr === 'added') return 'Enabled by you';
+    return 'Disabled';
+  }
+
+  // Хост не из списка по умолчанию расширению не разрешён: доступ к нему
+  // спрашивается диалогом, и только согласие записывает хост в список. Запрос —
+  // первое действие обработчика: chrome.permissions.request выполняется лишь в
+  // обработчике действия пользователя, а chrome.storage.local.get — уже
+  // асинхронный шаг, после которого жест может не сохраниться.
+  toggle.addEventListener('change', () => {
+    if (!toggle.checked || siteList.DEFAULT_HOSTS.includes(host)) {
+      permissionMsg.classList.add('hidden');
+      writeToggleState();
+      return;
+    }
+
+    chrome.permissions.request({ origins: [accessPattern(tab)] }, (granted) => {
+      if (!granted || chrome.runtime.lastError) {
+        toggle.checked = false;
+        label.textContent = 'Disabled';
+        permissionMsg.textContent = `Permission to run on ${host} was not granted, so the site was not added.`;
+        permissionMsg.classList.remove('hidden');
+        return;
+      }
+      permissionMsg.classList.add('hidden');
+      writeToggleState();
+    });
   });
 
   resetBtn.addEventListener('click', () => {
-    chrome.storage.local.set({ [STORAGE_KEY]: resetState() }, () => {
-      chrome.storage.local.get(STORAGE_KEY, (result) => {
-        const state = sanitizeState(result && result[STORAGE_KEY]);
-        toggle.checked = isHostEnabled(host, state);
-        label.textContent = isHostEnabled(host, state) ? 'Enabled' : 'Disabled';
+    chrome.storage.local.set({ [siteList.STORAGE_KEY]: siteList.resetState() }, () => {
+      chrome.storage.local.get(siteList.STORAGE_KEY, (result) => {
+        const state = siteList.sanitizeState(result && result[siteList.STORAGE_KEY]);
+        toggle.checked = siteList.isHostEnabled(host, state);
+        label.textContent = getStateLabel(host, state);
         reloadMsg.classList.remove('hidden');
         setTimeout(() => reloadMsg.classList.add('hidden'), 3000);
       });

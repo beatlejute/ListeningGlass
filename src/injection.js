@@ -18,13 +18,17 @@ const YOUTUBE_ADAPTER_HOSTS = Object.freeze([
   'www.youtube-nocookie.com',
 ]);
 
-// Хост вставляется в шаблон совпадения как есть: порт и поддомены значимы,
-// унификация «www.» намеренно не выполняется (см. IMPL-004).
+// Порт хранится в site-list как часть хоста, но Chrome не принимает порты в
+// match pattern. Убираем только числовой порт; поддомены и имя хоста не
+// унифицируются (см. IMPL-004).
 function hostToMatchPattern(host) {
   if (typeof host !== 'string') return null;
   const trimmed = host.trim();
   if (trimmed === '' || trimmed.includes('*') || trimmed.includes('/')) return null;
-  return `*://${trimmed}/*`;
+  const matchHost = trimmed.startsWith('[')
+    ? trimmed.replace(/]:\d+$/, ']')
+    : trimmed.replace(/:\d+$/, '');
+  return `*://${matchHost}/*`;
 }
 
 function toMatchPatterns(hosts) {

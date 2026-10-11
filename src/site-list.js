@@ -27,6 +27,22 @@ function extractHost(input) {
   return url.host;
 }
 
+function isServicePage(input) {
+  if (input === undefined || input === null || input === '') return true;
+
+  let url;
+  try {
+    url = new URL(input);
+  } catch {
+    return false;
+  }
+
+  if (!ALLOWED_SCHEMES.has(url.protocol)) return true;
+  return url.host === 'chromewebstore.google.com'
+    || (url.protocol === 'https:' && url.host === 'chrome.google.com'
+      && url.pathname.startsWith('/webstore/'));
+}
+
 function emptyState() {
   return { added: [], excluded: [] };
 }
@@ -47,6 +63,14 @@ function isHostEnabled(host, state, defaultHosts = DEFAULT_HOSTS) {
   if (safeState.excluded.includes(host)) return false;
   if (defaultHosts.includes(host)) return true;
   return safeState.added.includes(host);
+}
+
+function hostState(host, state, defaultHosts = DEFAULT_HOSTS) {
+  const safeState = sanitizeState(state);
+  if (safeState.excluded.includes(host)) return 'disabled';
+  if (defaultHosts.includes(host)) return 'default';
+  if (safeState.added.includes(host)) return 'added';
+  return 'disabled';
 }
 
 function addHostToState(host, state) {
@@ -121,8 +145,10 @@ const api = {
   STORAGE_KEY,
   DEFAULT_HOSTS,
   extractHost,
+  isServicePage,
   sanitizeState,
   isHostEnabled,
+  hostState,
   addHostToState,
   removeHostFromState,
   resetState,

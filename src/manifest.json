@@ -10,6 +10,7 @@
   },
   "description": "Keeps media playing when the browser is minimized or tabs are hidden.",
   "permissions": [
+    "activeTab",
     "scripting",
     "storage"
   ],

@@ -3,12 +3,15 @@
 import assert from 'node:assert/strict';
 import { test, describe, beforeEach } from 'node:test';
 import siteList from '../src/site-list.js';
+import injection from '../src/injection.js';
 
 const {
   DEFAULT_HOSTS,
   extractHost,
+  isServicePage,
   sanitizeState,
   isHostEnabled,
+  hostState,
   addHostToState,
   removeHostFromState,
   resetState,
@@ -72,6 +75,11 @@ describe('extractHost — edge case: порт', () => {
     assert.equal(extractHost('https://example.com:8080/path'), 'example.com:8080');
     assert.notEqual(extractHost('https://example.com:8080/path'), extractHost('https://example.com/path'));
   });
+
+  test('match pattern пользовательского хоста не содержит порт', () => {
+    assert.equal(injection.hostToMatchPattern(extractHost('http://127.0.0.1:8080/')), '*://127.0.0.1/*');
+    assert.equal(injection.hostToMatchPattern('example.com'), '*://example.com/*');
+  });
 });
 
 describe('extractHost — edge case: вариант www.', () => {
@@ -102,6 +110,24 @@ describe('extractHost — edge case: схемы кроме http/https', () => {
 
   test('не-URL строка не даёт хост', () => {
     assert.equal(extractHost('not a url'), null);
+  });
+});
+
+describe('isServicePage — URL вкладки', () => {
+  test('распознаёт отсутствующий URL и схемы служебных страниц', () => {
+    for (const url of [undefined, null, '', 'chrome://extensions/', 'edge://settings/', 'file:///tmp/page']) {
+      assert.equal(isServicePage(url), true, url || 'missing URL');
+    }
+  });
+
+  test('распознаёт новый и старый адреса магазина', () => {
+    assert.equal(isServicePage('https://chromewebstore.google.com/detail/x'), true);
+    assert.equal(isServicePage('https://chrome.google.com/webstore/detail/x'), true);
+  });
+
+  test('не считает обычные HTTP(S) страницы служебными', () => {
+    assert.equal(isServicePage('https://rutube.ru/'), false);
+    assert.equal(isServicePage('http://127.0.0.1:8080/'), false);
   });
 });
 
@@ -175,6 +201,32 @@ describe('isHostEnabled / addHostToState / removeHostFromState', () => {
     let state = addHostToState('dup.example', sanitizeState(null));
     state = addHostToState('dup.example', state);
     assert.deepEqual(state.added, ['dup.example']);
+  });
+});
+
+describe('hostState — три состояния хоста', () => {
+  test('хост из набора по умолчанию — default', () => {
+    assert.equal(hostState('rutube.ru', sanitizeState(null)), 'default');
+  });
+
+  test('хост, добавленный пользователем — added', () => {
+    const state = addHostToState('custom.example', sanitizeState(null));
+    assert.equal(hostState('custom.example', state), 'added');
+  });
+
+  test('хост, исключённый пользователем — disabled', () => {
+    const state = removeHostFromState('rutube.ru', sanitizeState(null));
+    assert.equal(hostState('rutube.ru', state), 'disabled');
+  });
+
+  test('неизвестный хост без добавления — disabled', () => {
+    assert.equal(hostState('unknown.example', sanitizeState(null)), 'disabled');
+  });
+
+  test('повторное добавление исключённого хоста по умолчанию — default', () => {
+    let state = removeHostFromState('rutube.ru', sanitizeState(null));
+    state = addHostToState('rutube.ru', state);
+    assert.equal(hostState('rutube.ru', state), 'default');
   });
 });
 
