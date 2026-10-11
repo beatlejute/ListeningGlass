@@ -1,6 +1,6 @@
 # Privacy Policy for Listening Glass
 
-**Last updated: 2026-09-30**
+**Last updated: 2026-10-02**
 
 Listening Glass is a browser extension that keeps audio and video playing when the browser window is minimized or a tab is in the background. This policy explains exactly what the extension stores on your device and what it never sends anywhere.
 
@@ -30,7 +30,7 @@ The default site list ships inside the extension package. Adding, removing, or r
 
 Listening Glass has no backend and makes no network requests on your behalf. Nothing is uploaded, sent to the developer, or shared with third parties — not the site list, not page content, not diagnostics.
 
-The extension is built from the files in its source repository and contains no remote code: everything it runs is packaged in the extension itself and it never downloads or executes scripts from the network. Its permissions are used only on the pages you enable, and only to keep media playing there.
+The extension is built from the files in its source repository and contains no remote code: everything it runs is packaged in the extension itself and it never downloads or executes scripts from the network. Its host permissions are used only on the pages you enable, and only to keep media playing there; the `activeTab` permission temporarily lets the popup read the address of the tab on which you invoke the extension.
 
 You can verify this yourself: search the extension's source for `fetch`, `XMLHttpRequest`, `sendBeacon`, and `WebSocket` — there are none.
 
@@ -46,6 +46,7 @@ You can verify this yourself: search the extension's source for `fetch`, `XMLHtt
 |---|---|
 | `storage` | Save your site list locally, so the extension knows which sites to run on. |
 | `scripting` | Inject the small playback script into the pages on your site list. |
+| `activeTab` | Temporarily read the address of the tab on which you invoke the extension, so the popup can name that site and offer to enable it. This does not grant permanent access to all tab addresses; persistent access to your custom site is requested separately when you enable it. |
 | Host access for the default sites (`www.youtube.com`, `m.youtube.com`, `www.youtube-nocookie.com`, `music.youtube.com`, `rutube.ru`, `m.twitch.tv`, `www.twitch.tv`, `www.tiktok.com`, `music.apple.com`) | Run the playback script on those sites out of the box. |
 | Optional host access for any other `http`/`https` site | Run the playback script on a site you add yourself. Requested only when you add a site. |
 

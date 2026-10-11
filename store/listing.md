@@ -24,7 +24,7 @@ Length: 102 characters (limit 132).
 ## Category
 
 ```
-Productivity
+Functionality & UI
 ```
 
 ---
@@ -56,7 +56,7 @@ Sites enabled by default:
 - YouTube and YouTube Music (desktop and mobile)
 - Rutube
 - Twitch
-- TikTok
+- TikTok (on Android in Yandex Browser the sound may stop in the background; play from the system media controls resumes it)
 - Apple Music
 
 Picture-in-picture: on the sites that support it, Listening Glass removes the element-level block on
@@ -89,6 +89,7 @@ is hidden, or the user switches to another window or application.
 
 | Permission or host access in `src/manifest.json` | Why the extension needs it |
 |---|---|
+| `activeTab` | Temporarily lets the popup read the address of the tab on which the user invokes the extension. It does not give permanent access to all tab addresses. Persistent access to a custom site is requested separately when the user enables it. |
 | `scripting` | Injects the small playback script into the pages of the sites the user has enabled, in the page's main world and before the page's own scripts, because no browser API exposes the standard page-visibility and media-throttling signals the sites use. |
 | `storage` | Saves the user's site list in `chrome.storage.local`: the sites the user added and the default sites the user turned off. The list is read on browser start to decide where to run the script. Nothing else is stored. |
 | Host access `*://www.youtube.com/*` | Runs the playback script on that site, which pauses media and blocks play when the tab is hidden. |
@@ -156,9 +157,13 @@ https://github.com/beatlejute/ListeningGlass/blob/main/store/privacy-policy.md
   the exact characters to copy, not part of the listing.
 - The "Single purpose" answer, both answers in Remote code and Data usage certification, and the
   per-permission justifications are the Privacy practices tab of the store listing form.
-- Every permission row in the table maps one-to-one to an entry in `src/manifest.json`: `scripting`,
-  `storage`, the nine `host_permissions`, and the two `optional_host_permissions`. If a later version
-  changes the manifest, this table has to be rewritten to match it.
+- Every permission row in the table maps one-to-one to an entry in `src/manifest.json`:
+  - `permissions`: `activeTab`, `scripting`, `storage`.
+  - `host_permissions`: `*://m.youtube.com/*`, `*://www.youtube.com/*`,
+    `*://www.youtube-nocookie.com/*`, `*://music.youtube.com/*`, `*://rutube.ru/*`,
+    `*://m.twitch.tv/*`, `*://www.twitch.tv/*`, `*://www.tiktok.com/*`, `*://music.apple.com/*`.
+  - `optional_host_permissions`: `http://*/*`, `https://*/*`.
+  If a later version changes the manifest, this table and this list have to be rewritten to match it.
 - Images for the listing (small promo tile 440×280, screenshots 1280×800) are tracked separately and
   are not described here.
 - No wording implies unlocking, downloading, or circumventing site restrictions, and the listing
