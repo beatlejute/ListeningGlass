@@ -18,8 +18,15 @@
 
 if (window.__listeningGlassYouTube) {
 } else {
-  window.__listeningGlassYouTube = true;
-  document.documentElement.setAttribute('data-listening-glass-youtube', 'started');
+  window.__listeningGlassYouTube = {};
+  function setYouTubeStarted() {
+    if (document.documentElement) document.documentElement.setAttribute('data-listening-glass-youtube', 'started');
+  }
+  if (document.documentElement) setYouTubeStarted();
+  else if (typeof MutationObserver !== 'undefined') {
+    const mo = new MutationObserver(function(_, obs) { if (document.documentElement) { setYouTubeStarted(); obs.disconnect(); } });
+    mo.observe(document, { childList: true, subtree: false });
+  }
 
   // Окно «Video paused. Continue watching?» отсчитывается от последней
   // активности пользователя (window._lact) и появляется, когда значение
@@ -169,11 +176,18 @@ if (window.__listeningGlassYouTube) {
 
   // Состояние наружу: по нему тесты и ручные проверки читают счётчик
   // подменённых конфигов и журнал, не завися от приватных переменных.
-  Object.assign(window.__listeningGlassYouTube, state, {
+  // flagsPatched и log выставляются геттерами по живому state: Object.assign
+  // скопировал бы снимки значений, и проверка после подмены конфигов
+  // видела бы ноль (дефект FIX-007).
+  Object.assign(window.__listeningGlassYouTube, {
     FORCED_FLAGS,
     patchFlagString,
     patchPlayerConfigs,
     patchSetArgs,
     hookYtcfg,
+  });
+  Object.defineProperties(window.__listeningGlassYouTube, {
+    flagsPatched: { get: () => state.flagsPatched, enumerable: true },
+    log: { get: () => state.log, enumerable: true },
   });
 }

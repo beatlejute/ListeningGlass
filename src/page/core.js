@@ -7,7 +7,14 @@
 if (window.__listeningGlassCore) {
 } else {
   window.__listeningGlassCore = true;
-  document.documentElement.setAttribute('data-listening-glass-core', 'started');
+  function setCoreStarted() {
+    if (document.documentElement) document.documentElement.setAttribute('data-listening-glass-core', 'started');
+  }
+  if (document.documentElement) setCoreStarted();
+  else if (typeof MutationObserver !== 'undefined') {
+    const mo = new MutationObserver(function(_, obs) { if (document.documentElement) { setCoreStarted(); obs.disconnect(); } });
+    mo.observe(document, { childList: true, subtree: false });
+  }
 
   const RESUME_WINDOW_MS = 2000;
   const GESTURE_WINDOW_MS = 2000;
@@ -57,6 +64,7 @@ if (window.__listeningGlassCore) {
   let hiddenAt = -Infinity;
   let resumeArmed = false;
   let lastPause = null;
+  let lastMediaSessionPauseAt = -Infinity;
   const nativePlay = HTMLMediaElement.prototype.play;
   window.addEventListener('visibilitychange', () => {
     const nativeVisibilityState = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
@@ -94,7 +102,7 @@ if (window.__listeningGlassCore) {
     } else {
       reallyHidden = document.hidden === true || document.visibilityState === 'hidden';
     }
-    if (reallyHidden && hiddenAt > 0 && Date.now() - hiddenAt < RESUME_WINDOW_MS) {
+    if (reallyHidden && hiddenAt > 0 && Date.now() - lastMediaSessionPauseAt >= GESTURE_WINDOW_MS) {
       resumeArmed = false;
       setTimeout(() => {
         nativePlay.call(media).catch(() => {});
@@ -164,12 +172,25 @@ if (window.__listeningGlassCore) {
   if (navigator.mediaSession) {
     const setActionHandler = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
     navigator.mediaSession.setActionHandler = (action, handler) => {
-      return setActionHandler(action, handler && (action === 'pause' || action === 'stop')
-        ? (...args) => {
-            lastGesture = Date.now();
-            return handler(...args);
+      if (!handler) return setActionHandler(action, handler);
+      if (action === 'pause' || action === 'stop') {
+        return setActionHandler(action, (...args) => {
+          const pauseAt = Date.now();
+          lastGesture = pauseAt;
+          lastMediaSessionPauseAt = pauseAt;
+          return handler(...args);
+        });
+      }
+      if (action === 'play') {
+        return setActionHandler(action, (...args) => {
+          const result = handler(...args);
+          for (const media of document.querySelectorAll('audio, video')) {
+            if (media.paused && !media.ended) nativePlay.call(media).catch(() => {});
           }
-        : handler);
+          return result;
+        });
+      }
+      return setActionHandler(action, handler);
     };
   }
 }
